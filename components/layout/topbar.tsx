@@ -1,9 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type UserInfo = {
+  email: string;
+  fullName: string;
+  initials: string;
+};
 
 export default function Topbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createClient();
+
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", authUser.id)
+        .single();
+
+      const fullName =
+        profile?.full_name ||
+        authUser.user_metadata?.full_name ||
+        authUser.email ||
+        "Teacher";
+
+      const initials = fullName
+        .split(" ")
+        .filter(Boolean)
+        .slice(-2)
+        .map((name: string) => name[0])
+        .join("")
+        .toUpperCase();
+
+      setUser({
+        email: authUser.email || "",
+        fullName,
+        initials,
+      });
+    }
+
+    loadUser();
+  }, []);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+
+    const supabase = createClient();
+
+    await supabase.auth.signOut();
+
+    window.location.href = "/login";
+  }
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e7e9ed] bg-white px-4 sm:px-6">
@@ -34,16 +95,26 @@ export default function Topbar() {
         <div className="ml-1 flex items-center gap-3 border-l border-[#e7e9ed] pl-3">
           <div className="hidden text-right sm:block">
             <div className="text-sm font-medium text-gray-800">
-              Cat Tuong
+              {user?.fullName || "Loading..."}
             </div>
+
             <div className="text-[11px] text-gray-500">
-              English Teacher
+              {user?.email || "Teacher"}
             </div>
           </div>
 
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e9ecef] text-xs font-semibold text-gray-700">
-            CT
+            {user?.initials || "T"}
           </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="rounded-lg px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loggingOut ? "Logging out..." : "Log out"}
+          </button>
         </div>
       </div>
 
