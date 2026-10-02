@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import CreateLessonPlanForm from "@/components/lesson-plans/create-lesson-plan-form";
 import AddLessonMaterialForm from "@/components/lesson-materials/add-lesson-material-form";
 import RemoveLessonMaterialButton from "@/components/lesson-materials/remove-lesson-material-button";
+import RemoveActivityButton from "@/components/lessons/remove-activity-button";
 
 type LessonDetailPageProps = {
   params: Promise<{
@@ -34,6 +35,31 @@ type Material = {
 type AssignedMaterial = {
   assignmentId: string;
   material: Material;
+};
+
+type LessonActivity = {
+  id: string;
+  lesson_id: string;
+  activity_id: string;
+  order_index: number | null;
+  notes: string | null;
+};
+
+type Activity = {
+  id: string;
+  title: string;
+  description: string | null;
+  activity_type: string | null;
+  level: string | null;
+  skill: string | null;
+  duration: number | null;
+};
+
+type AssignedActivity = {
+  assignmentId: string;
+  orderIndex: number | null;
+  notes: string | null;
+  activity: Activity;
 };
 
 function getTypeLabel(type: string) {
@@ -82,6 +108,7 @@ export default async function LessonDetailPage({
     { data: lesson, error: lessonError },
     { data: lessonPlan, error: lessonPlanError },
     { data: lessonMaterials, error: lessonMaterialsError },
+    { data: lessonActivities, error: lessonActivitiesError },
   ] = await Promise.all([
     supabase
       .from("courses")
@@ -120,6 +147,17 @@ export default async function LessonDetailPage({
       .from("lesson_materials")
       .select("id, material_id")
       .eq("lesson_id", lessonId),
+
+    supabase
+      .from("lesson_activities")
+      .select(
+        "id, lesson_id, activity_id, order_index, notes"
+      )
+      .eq("lesson_id", lessonId)
+      .order("order_index", {
+        ascending: true,
+        nullsFirst: false,
+      }),
   ]);
 
   if (courseError || !course) {
@@ -149,6 +187,18 @@ export default async function LessonDetailPage({
         details: lessonMaterialsError.details,
         hint: lessonMaterialsError.hint,
         code: lessonMaterialsError.code,
+      })
+    );
+  }
+
+  if (lessonActivitiesError) {
+    console.error(
+      "FAILED_TO_LOAD_LESSON_ACTIVITIES",
+      JSON.stringify({
+        message: lessonActivitiesError.message,
+        details: lessonActivitiesError.details,
+        hint: lessonActivitiesError.hint,
+        code: lessonActivitiesError.code,
       })
     );
   }
@@ -204,6 +254,60 @@ export default async function LessonDetailPage({
         (
           item
         ): item is AssignedMaterial => item !== null
+      );
+
+  const assignedLessonActivities =
+    (lessonActivities ?? []) as LessonActivity[];
+
+  const assignedActivityIds =
+    assignedLessonActivities.map(
+      (lessonActivity) => lessonActivity.activity_id
+    );
+
+  let assignedActivities: Activity[] = [];
+
+  if (assignedActivityIds.length > 0) {
+    const { data: activities, error: activitiesError } =
+      await supabase
+        .from("activities")
+        .select(
+          "id, title, description, activity_type, level, skill, duration"
+        )
+        .in("id", assignedActivityIds);
+
+    if (activitiesError) {
+      console.error(
+        "Failed to load assigned activities:",
+        activitiesError
+      );
+    } else {
+      assignedActivities = (activities ?? []) as Activity[];
+    }
+  }
+
+  const assignedActivityRows: AssignedActivity[] =
+    assignedLessonActivities
+      .map((lessonActivity) => {
+        const activity = assignedActivities.find(
+          (item) =>
+            item.id === lessonActivity.activity_id
+        );
+
+        if (!activity) {
+          return null;
+        }
+
+        return {
+          assignmentId: lessonActivity.id,
+          orderIndex: lessonActivity.order_index,
+          notes: lessonActivity.notes,
+          activity,
+        };
+      })
+      .filter(
+        (
+          item
+        ): item is AssignedActivity => item !== null
       );
 
   return (
@@ -635,28 +739,159 @@ export default async function LessonDetailPage({
           </div>
         </section>
 
-        {/* Future Sections */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-[#e7e9ed] bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900">
-              Activities
-            </h2>
+        {/* Activities */}
+        <section className="mb-6 rounded-xl border border-[#e7e9ed] bg-white">
+          <div className="border-b border-[#e7e9ed] px-6 py-5">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">
+                  Activities
+                </h2>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Reusable classroom activities will appear here.
-            </p>
-          </section>
+                <p className="mt-1 text-sm text-gray-500">
+                  Reusable classroom activities assigned to this lesson.
+                </p>
+              </div>
 
-          <section className="rounded-xl border border-[#e7e9ed] bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900">
-              Vocabulary
-            </h2>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                  {assignedActivityRows.length}{" "}
+                  {assignedActivityRows.length === 1
+                    ? "activity"
+                    : "activities"}
+                </span>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Lesson vocabulary will appear here.
-            </p>
-          </section>
-        </div>
+                <Link
+                  href={`/courses/${courseId}/units/${unitId}/lessons/${lessonId}/add-activity`}
+                  className="inline-flex items-center rounded-lg border border-[#dfe3e8] bg-white px-4 py-2.5 text-sm font-medium text-[#374151] transition hover:bg-[#f8fafc]"
+                >
+                  + Add Activity
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {assignedActivityRows.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
+                <p className="text-sm font-medium text-gray-700">
+                  No activities assigned yet.
+                </p>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Add an activity from the Activity Library to use it in
+                  this lesson.
+                </p>
+
+                <Link
+                  href={`/courses/${courseId}/units/${unitId}/lessons/${lessonId}/add-activity`}
+                  className="mt-4 inline-flex rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Add Activity
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {assignedActivityRows.map(
+                  ({
+                    assignmentId,
+                    orderIndex,
+                    notes,
+                    activity,
+                  }) => (
+                    <div
+                      key={assignmentId}
+                      className="rounded-xl border border-gray-200 bg-white p-5"
+                    >
+                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {orderIndex !== null && (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                                #{orderIndex}
+                              </span>
+                            )}
+
+                            {activity.activity_type && (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                                {activity.activity_type}
+                              </span>
+                            )}
+
+                            {activity.level && (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                                {activity.level}
+                              </span>
+                            )}
+
+                            {activity.skill && (
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                                {activity.skill}
+                              </span>
+                            )}
+                          </div>
+
+                          <Link
+                            href={`/activities/${activity.id}`}
+                            className="mt-2 block text-base font-semibold text-gray-900 hover:text-blue-600"
+                          >
+                            {activity.title}
+                          </Link>
+
+                          {activity.description && (
+                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-gray-500">
+                              {activity.description}
+                            </p>
+                          )}
+
+                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                            {activity.duration !== null && (
+                              <span>
+                                {activity.duration} minutes
+                              </span>
+                            )}
+
+                            {notes && (
+                              <>
+                                <span>·</span>
+                                <span>{notes}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3">
+                          <Link
+                            href={`/activities/${activity.id}`}
+                            className="rounded-lg border border-[#dfe3e8] bg-white px-3 py-2 text-sm font-medium text-[#374151] transition hover:bg-[#f8fafc]"
+                          >
+                            View
+                          </Link>
+
+                          <RemoveActivityButton
+                            lessonId={lessonId}
+                            activityId={activity.id}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Vocabulary */}
+        <section className="rounded-xl border border-[#e7e9ed] bg-white p-6">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Vocabulary
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-500">
+            Lesson vocabulary will appear here.
+          </p>
+        </section>
       </div>
     </main>
   );
