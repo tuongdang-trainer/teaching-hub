@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import CreateCourseForm from "@/components/courses/create-course-form";
 
@@ -57,7 +58,7 @@ export default async function CoursesPage() {
       ) : (
         <section className="overflow-hidden rounded-xl border border-[#e7e9ed] bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[950px]">
               <thead className="border-b border-[#e7e9ed] bg-[#fafafa]">
                 <tr>
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -78,6 +79,10 @@ export default async function CoursesPage() {
 
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Status
+                  </th>
+
+                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -121,6 +126,24 @@ export default async function CoursesPage() {
                       >
                         {course.status}
                       </span>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/courses/${course.id}`}
+                          className="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                        >
+                          View
+                        </Link>
+
+                        <Link
+                          href={`/courses/${course.id}/delete`}
+                          className="inline-flex items-center rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        >
+                          Delete
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

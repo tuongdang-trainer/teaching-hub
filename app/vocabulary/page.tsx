@@ -122,13 +122,15 @@ export default async function VocabularyPage() {
           ) : (
             <div className="divide-y divide-[#e5e7eb]">
               {items.map((item) => (
-                <Link
+                <div
                   key={item.id}
-                  href={`/vocabulary/${item.id}`}
-                  className="block px-6 py-5 transition hover:bg-[#f9fafb]"
+                  className="px-6 py-5 transition hover:bg-[#f9fafb]"
                 >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="min-w-0">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <Link
+                      href={`/vocabulary/${item.id}`}
+                      className="min-w-0 flex-1"
+                    >
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-base font-semibold text-[#111827]">
                           {item.word}
@@ -144,23 +146,39 @@ export default async function VocabularyPage() {
                       <p className="mt-1 text-sm text-[#6b7280]">
                         {item.meaning || "No meaning added yet."}
                       </p>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
-                      {item.level ? (
-                        <span className="rounded-full border border-[#e5e7eb] px-2.5 py-1">
-                          {item.level}
-                        </span>
-                      ) : null}
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
+                        {item.level ? (
+                          <span className="rounded-full border border-[#e5e7eb] px-2.5 py-1">
+                            {item.level}
+                          </span>
+                        ) : null}
 
-                      {item.topic ? (
-                        <span className="rounded-full border border-[#e5e7eb] px-2.5 py-1">
-                          {item.topic}
-                        </span>
-                      ) : null}
+                        {item.topic ? (
+                          <span className="rounded-full border border-[#e5e7eb] px-2.5 py-1">
+                            {item.topic}
+                          </span>
+                        ) : null}
+                      </div>
+                    </Link>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link
+                        href={`/vocabulary/${item.id}`}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-[#d1d5db] bg-white px-3 text-xs font-medium text-[#374151] transition hover:bg-[#f9fafb]"
+                      >
+                        View
+                      </Link>
+
+                      <Link
+                        href={`/vocabulary/${item.id}/delete`}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                      >
+                        Delete
+                      </Link>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -187,4 +205,3 @@ function KpiCard({
     </div>
   );
 }
-

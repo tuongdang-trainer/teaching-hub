@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
@@ -163,7 +162,7 @@ export default async function LearnersPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/40">
                 <tr className="text-left">
                   <th className="px-4 py-3 font-medium">
@@ -184,6 +183,10 @@ export default async function LearnersPage() {
 
                   <th className="px-4 py-3 font-medium">
                     Created
+                  </th>
+
+                  <th className="px-4 py-3 text-right font-medium">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -230,6 +233,28 @@ export default async function LearnersPage() {
 
                       <td className="px-4 py-3 text-muted-foreground">
                         {formatDate(learner.created_at)}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={"/learners/" + learner.id}
+                            className="rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-muted"
+                          >
+                            View
+                          </Link>
+
+                          <Link
+                            href={
+                              "/learners/" +
+                              learner.id +
+                              "/delete"
+                            }
+                            className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                          >
+                            Delete
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );
